@@ -1,20 +1,19 @@
 [app]
 
-title = KivyDemo
-package.name = kivydemo
-package.domain = org.kivydemo
+title = NetCheck
+package.name = netcheck
+package.domain = org.netcheck
 
 source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 
 version = 0.1
 
-requirements = python3,kivy
+requirements = python3,kivy,requests
 
 android.api = 33
 android.ndk = 25b
-android.sdk = 24
-android.permissions = INTERNET
+android.permissions = INTERNET,ACCESS_NETWORK_STATE,ACCESS_WIFI_STATE
 
 orientation = portrait
 
