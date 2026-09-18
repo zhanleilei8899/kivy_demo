@@ -6,14 +6,13 @@ from kivy.uix.button import Button
 from kivy.uix.spinner import Spinner
 from kivy.uix.checkbox import CheckBox
 from kivy.uix.scrollview import ScrollView
-from kivy.core.window import Window
 from kivy.clock import Clock
 import threading
 import socket
 import time
-import urllib.request
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+import requests
 
 # ============ 卡密 & 时间配置区（自行修改） ============
 VALID_KEY = "ABC123456"
@@ -48,14 +47,13 @@ def get_my_public_ip():
     ip_urls = [
         "http://api.ipify.org",
         "http://icanhazip.com",
-        "http://ifconfig.me/ip"
     ]
     for url in ip_urls:
         try:
-            with urllib.request.urlopen(url, timeout=2.5) as resp:
-                ip = resp.read().decode('utf-8').strip()
-                if ip:
-                    return ip
+            resp = requests.get(url, timeout=2.5)
+            ip = resp.text.strip()
+            if ip:
+                return ip
         except Exception:
             continue
     return "获取失败(网络无法访问IP查询服务)"
@@ -86,13 +84,10 @@ def resolve_ipv4(host):
     addrinfo = socket.getaddrinfo(host, None, family=socket.AF_INET)
     return addrinfo[0][4][0]
 
-# =========【安卓兼容：纯Python实现ICMP模拟，不调用subprocess ping】========
 def ping_icmp_ipv4(ip_addr, timeout=1):
-    """安卓不能调用系统ping，改用TCP简单替代ICMP连通性探测"""
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(timeout)
-        # 尝试连接80端口模拟可达性，安卓原生无法发送raw icmp
         res = sock.connect_ex((ip_addr, 80))
         sock.close()
         return res == 0
@@ -151,7 +146,6 @@ class MainPage(BoxLayout):
         top_layout.add_widget(self.platform_spinner)
         self.add_widget(top_layout)
 
-        # 勾选框区域
         check_layout = BoxLayout(size_hint_y=0.15)
         self.usb_debug = CheckBox()
         check_layout.add_widget(Label(text="USB调试"))
@@ -188,7 +182,6 @@ class MainPage(BoxLayout):
         self.add_widget(scroll)
 
     def set_log(self, text):
-        """kivy线程安全更新UI"""
         def _dt(x):
             self.log_text.text = text
             self.scroll_view.scroll_y = 0
@@ -213,7 +206,6 @@ class MainPage(BoxLayout):
         t.start()
 
     def _check_one_domain(self, domain):
-        """单个域名检测任务，返回日志片段与结果计数"""
         log_seg = f"【域名】{domain}\n"
         icmp_ok = False
         tcp443_ok = False
@@ -330,13 +322,11 @@ class MainPage(BoxLayout):
         log += "开启高危选项，会导致广告加载异常、账号风控。\n"
 
         self.set_log(log)
-        # 恢复按钮
         def finish_cb(x):
             self.is_running = False
             self.set_btn_state(False)
         Clock.schedule_once(finish_cb,0)
 
-# 根页面管理器
 class RootLayout(BoxLayout):
     def __init__(self,**kwargs):
         super().__init__(**kwargs)
@@ -352,7 +342,6 @@ class RootLayout(BoxLayout):
 
 class NetCheckApp(App):
     def build(self):
-        Window.size = (360,800)
         return RootLayout()
 
 if __name__ == "__main__":
